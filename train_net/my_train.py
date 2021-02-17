@@ -27,6 +27,116 @@ import random
 import matplotlib.pyplot as plt
 import numpy as np
 
+class LandMarkRotation:
+    def __init__(self):
+        self.img_dir = '/home/liu/chenhaoran/after_resize2'
+        pass
+
+    def check(self):
+        img_list = os.listdir(self.img_dir)
+        for idx, item in enumerate(img_list):
+            img_ = Image.open(os.path.join(self.img_dir, item))
+            angle = [90,180,270]
+            angle = random.sample(angle,1)[0]
+            random_num = np.random.randint(-5, 5,1)[0]
+            angle += random_num
+
+            img = img_.rotate(-angle)
+            parse_result = self.parse_image_name(item)
+            landmark = parse_result['landmark']
+            print('landmark:',landmark)
+            self.visualize(img_, landmark)
+            landmark = self.landmark_clockwise(landmark, angle)
+            print('landmark:', landmark)
+            self.visualize(img, landmark)
+    def using_when_training(self,name):
+        img_ = Image.open(os.path.join('/home/liu/chenhaoran/after_resize2', name))
+        angle = [90, 180, 270]
+        angle = random.sample(angle, 1)[0]
+        random_num = np.random.randint(-5, 5, 1)[0]
+        angle += random_num
+
+        img = img_.rotate(-angle)
+        parse_result = self.parse_image_name(name)
+        landmark = parse_result['landmark']
+        landmark = self.landmark_clockwise(landmark, angle)
+        return img, landmark
+    def parse_image_name(self, name):
+        """
+        解析图片的名称
+        :param name:图片的名称
+        :return:
+        """
+        name_name = name.split(';')[0]
+        _ = name.split(';')[-1]
+        name_format = _.split('-')[-1]
+        landmark_list = _.split('-')[:-1]
+
+        for idx, i in enumerate(landmark_list):
+            landmark_list[idx] = (float(i.split(',')[0]), float(i.split(',')[1]))
+
+        # 判断名称是否有问题
+        if len(landmark_list) != 12:
+            return False
+
+        _landmark_list = []
+        for idx, item in enumerate(landmark_list):
+            _landmark_list.append(item[0])
+            _landmark_list.append(item[1])
+        landmark_list = _landmark_list
+
+        return {'name': name_name,
+                'landmark': landmark_list,
+                'format': name_format}
+
+    def visualize(self, img, landmark):
+        """
+        :param img: PIL Image 类型
+        :param landmark: 一个list 其中每个点都是一个元组
+        :return: 直接可视化结果
+        """
+        print('now we are in visualize')
+        # print(landmark.shape)
+
+        # print(landmark.shape)
+        # print(landmark)
+        img = np.array(img, dtype='uint8')
+        plt.figure('visualize')
+        plt.imshow(img)
+        y = []
+        x = []
+        for i in range(12):
+            x.append(int(landmark[2 * i]))
+            y.append(int(landmark[2 * i + 1]))
+        print(x)
+        print(y)
+        print()
+        plt.plot(y, x, '*')
+        plt.show()
+
+    def landmark_clockwise(self, landmark, angle):
+        """
+        x1=xcos(β)-ysin(β);
+        y1=ycos(β)+xsin(β);
+        :param landmark:
+        :return:
+        """
+
+        _landmark = []
+        center_point = [96, 96]
+        for i in range(12):
+            y = landmark[2 * i]
+            x = landmark[2 * i + 1]
+
+            x1 = (x - center_point[0]) * round(np.cos(np.deg2rad(angle)), 2) - \
+                 (y-center_point[1]) * round(np.sin(np.deg2rad(angle)), 2) + center_point[0]
+            y1 = (x - center_point[0]) * round(np.sin(np.deg2rad(angle)), 2) + \
+                 (y-center_point[1]) * round(np.cos(np.deg2rad(angle)), 2) + center_point[1]
+            _landmark.append(y1)
+            _landmark.append(x1)
+
+        return _landmark
+
 
 class PalmDataset(Dataset):
     def __init__(self, data_path, mode='train', val_split=0):
@@ -53,6 +163,8 @@ class PalmDataset(Dataset):
         self.transforms = transforms.Compose([
             transforms.Grayscale(),
             transforms.ToTensor(),
+            transforms.Normalize((0.57,), (0.18,)),
+
         ])
 
     def parse_image_name(self, name):
@@ -88,10 +200,15 @@ class PalmDataset(Dataset):
 
     # 每次迭代时返回数据和对应的标签
     def __getitem__(self, idx):
+        # img,landmark = using_when_training(self.data_img[idx])
+        # img = self.transforms(img)
         for i in range(5):
             try:
-                img = Image.open(os.path.join(self.img_dir, self.data_img[idx]))
+
+                img = Image.open(os.path.join(self.img_dir,self.data_img[idx]))
                 img = self.transforms(img)
+                # label = np.array(self.data_label.iloc[idx,:],dtype = 'float32')/96
+                # print(self.data_img[idx])
                 landmark = self.parse_image_name(self.data_img[idx])
                 landmark = np.array(landmark['landmark'], dtype='float32')/192
                 return {'img': img,
@@ -107,8 +224,58 @@ class PalmDataset(Dataset):
     # 返回整个数据集的总数
     def __len__(self):
         return len(self.data_img)
+def parse_image_name(name):
+        """
+        解析图片的名称
+        :param name:图片的名称
+        :return:
+        """
+        name_name = name.split(';')[0]
+        _ = name.split(';')[-1]
+        name_format = _.split('-')[-1]
+        landmark_list = _.split('-')[:-1]
 
-def train_o_net(annotation_file, model_store_path, end_epoch=120, frequent=200, base_lr=0.01, batch_size=256,
+        for idx, i in enumerate(landmark_list):
+            landmark_list[idx] = (float(i.split(',')[0]), float(i.split(',')[1]))
+
+        # 判断名称是否有问题
+        if len(landmark_list) != 12:
+            return False
+
+        _landmark_list = []
+        for idx, item in enumerate(landmark_list):
+            _landmark_list.append(item[0])
+            _landmark_list.append(item[1])
+        landmark_list = _landmark_list
+
+        return {'name': name_name,
+                'landmark': landmark_list,
+                'format': name_format}
+def landmark_clockwise(landmark, angle):
+    """
+    x1=xcos(β)-ysin(β);
+    y1=ycos(β)+xsin(β);
+    :param landmark:
+    :return:
+    """
+
+    _landmark = []
+    center_point = [96, 96]
+    for i in range(12):
+        y = landmark[2 * i]
+        x = landmark[2 * i + 1]
+
+        x1 = (x - center_point[0]) * round(np.cos(np.deg2rad(angle)), 2) - \
+             (y-center_point[1]) * round(np.sin(np.deg2rad(angle)), 2) + center_point[0]
+        y1 = (x - center_point[0]) * round(np.sin(np.deg2rad(angle)), 2) + \
+             (y-center_point[1]) * round(np.cos(np.deg2rad(angle)), 2) + center_point[1]
+        _landmark.append(y1)
+        _landmark.append(x1)
+
+    return _landmark
+
+
+def train_o_net(annotation_file, model_store_path, end_epoch=1000, frequent=200, base_lr=0.01, batch_size=256,
                 use_cuda=True):
     # initialize the ONet ,loss function and set optimization for this network
     if not os.path.exists(model_store_path):
@@ -119,8 +286,9 @@ def train_o_net(annotation_file, model_store_path, end_epoch=120, frequent=200, 
     if use_cuda:
         net.to(device)
     lossfn = LossFn()
-    optimizer = torch.optim.Adam(net.parameters(), lr=base_lr)
-    scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[20,40,60,80,100], gamma=0.1)
+    optimizer = torch.optim.SGD(net.parameters(), lr=0.01, momentum=0.9)
+    # optimizer = torch.optim.Adam(net.parameters(), lr=base_lr)
+    scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[30, 60, 100, 120,150,200], gamma=0.1)
     train_dataset = PalmDataset(data_path='/home/liu/chenhaoran/argument_data')
     trainDataLoader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, num_workers=8)
     # train net
@@ -152,13 +320,14 @@ def train_o_net(annotation_file, model_store_path, end_epoch=120, frequent=200, 
             # visualize(_check_im, _check_gt)
 
             if use_cuda:
+                # _check_im = np.array(im_tensor[0][0], dtype='uint8')
                 im_tensor = im_tensor.cuda()
                 gt_landmark = gt_landmark.cuda()
 
             pred = net(im_tensor)
-            if batch_idx == 1:
-                _check_im = np.array(im_tensor[0][0], dtype='uint8')
-                visualize(_check_im, pred[0].cpu().detach().numpy() * 192)
+            # if batch_idx == 1:
+            #
+            #     visualize(_check_im, pred[0].cpu().detach().numpy() * 192)
             landmark_loss = lossfn.landmark_loss(pred, gt_landmark)
             all_loss = landmark_loss
             per_epoch_loss = per_epoch_loss + float(all_loss.data.tolist())
@@ -185,11 +354,11 @@ def train_o_net(annotation_file, model_store_path, end_epoch=120, frequent=200, 
                 torch.save(net.state_dict(), os.path.join(model_store_path, "min_palm_model_epoch.pt"))
         except:
             pass
-        if (cur_epoch + 1) % 30 == 0:
-            torch.save(net.state_dict(), os.path.join(model_store_path, "0208palm_model_epoch_%d_loss_%.6f.pt"
+        if (cur_epoch + 1) % 10 == 0:
+            torch.save(net.state_dict(), os.path.join(model_store_path, "!0208palm_model_epoch_%d_loss_%.6f.pt"
                                                       % (cur_epoch + 1, per_epoch_loss)))
 
-    torch.save(net.state_dict(), os.path.join(model_store_path, '0208palm_model_final.pt'))
+    torch.save(net.state_dict(), os.path.join(model_store_path, '!0208palm_model_final.pt'))
 def visualize(img, landmark):
     """
     :param img: PIL Image 类型
@@ -229,9 +398,9 @@ def parse_args():
     parser.add_argument('--frequent', dest='frequent', help='frequency of logging',
                         default=200, type=int)
     parser.add_argument('--base_lr', dest='base_lr', help='learning rate',
-                        default=config.TRAIN_LR, type=float)
+                        default=0.015, type=float)
     parser.add_argument('--batch_size', dest='batch_size', help='train batch size',
-                        default=250, type=int)
+                        default=200, type=int)
     parser.add_argument('--gpu', dest='use_cuda', help='train with gpu',
                         default=config.USE_CUDA, type=bool)
 

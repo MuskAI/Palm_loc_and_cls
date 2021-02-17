@@ -1,10 +1,4 @@
-#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
-"""
-Created on Sat May 26 13:57:59 2018
-
-@author: wujiyang
-"""
 
 import sys
 
