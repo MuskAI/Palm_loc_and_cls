@@ -59,7 +59,7 @@ class MyConv(nn.Module):
 class PalmNet(nn.Module):
     def __init__(self, input_shape=(512, 512)):
         super(PalmNet, self).__init__()
-        self.numberClass = 6
+        self.numberClass = 20
         self.enhancement = MyConv(kernel='filter1')
         self.prewitt1= MyConv(kernel='filter2')
         self.prewitt2 = MyConv(kernel='filter3')

@@ -18,12 +18,13 @@ from torchvision import transforms
 from model_0217 import PalmNet
 from tensorboardX import SummaryWriter
 from function import my_acc_score
+import traceback
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 device_ids = [0,1]
-writer = SummaryWriter('./runs/'+'0217palm_cls_loss_record')
+writer = SummaryWriter('./runs/'+'0217palm_cls_loss_record3')
 
 sys.path.append('./')
 def train():
@@ -36,6 +37,8 @@ def train():
 
     # TODO 1 构建模型 数据加载 损失函数 优化器
     model = PalmNet().cuda()
+
+
     # writer.add_graph(model, (torch.ones(1,3,512,512).cuda()))
     palm_data_train = PalmData()
     palm_data_test = PalmData(train_mode='test')
@@ -47,9 +50,19 @@ def train():
 
     optimizer = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
     scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[10,20,35,50,60], gamma=0.1)
+    # TODO 1 构建模型 数据加载 损失函数
+    if not os.path.exists(model_name):
+        traceback.print_exc('Please choose a right model path!!')
+    else:
+        checkpoint = torch.load(model_name, map_location='cpu')
+        model.load_state_dict(checkpoint['state_dict'])
+        start_epoch = checkpoint['epoch']
+        optimizer.load_state_dict(checkpoint['opt_state_dict'])
+        print('==>loaded model:', model_name)
+
     num_epochs = 70
 
-    for epoch in range(num_epochs):
+    for epoch in range(start_epoch+1,num_epochs):
         scheduler.step(epoch)
         loss_avg = 0
         acc_avg = 0
@@ -73,7 +86,7 @@ def train():
 
             pred = model(image)
             loss = wce_loss(pred, label)
-            acc = my_acc_score(pred,label)/batch_size
+            acc = my_acc_score(pred,label)
             writer.add_scalar('loss',loss.item(),global_step=epoch*len(trainDataLoader)+i)
             writer.add_scalar('acc', acc,global_step=epoch*len(trainDataLoader)+i)
 
@@ -93,6 +106,7 @@ def train():
             'opt_state_dict': optimizer.state_dict(),
             'epoch': epoch
         }
-        torch.save(checkpoint, './save_cls_model/0217model_epoch_%d_%.6f.pt' % (epoch, loss_avg/len(trainDataLoader)))
+        torch.save(checkpoint, './save_cls_model/!0217model_epoch_%d_%.6f.pt' % (epoch, loss_avg/len(trainDataLoader)))
 if __name__ == "__main__":
+    model_name = './save_cls_model/!0217model_epoch_31_0.045036.pt'
     train()

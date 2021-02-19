@@ -6,16 +6,17 @@ time : 2/17
 
 import torch
 import torch.nn as nn
+import numpy as np
 import sys
 from function import wce_loss
-from palm_dataloader import PalmData
+from palm_dataloader_child import PalmData
 import os
 from tqdm import tqdm
 from torchvision import transforms
-from model_0217 import PalmNet
+from model_child_cls import PalmNet
 import traceback
 from tensorboardX import SummaryWriter
-from function import my_acc_score
+from function import my_acc_score,my_f1_score,my_recall_score,my_precision_score
 
 device = 'cpu'
 sys.path.append('./')
@@ -41,6 +42,7 @@ def test():
 
     palm_data_test = PalmData(train_mode='test')
     testDataLoader = torch.utils.data.DataLoader(palm_data_test, batch_size=1, num_workers=1)
+
     acc_avg = 0
     loss_avg = 0
     f1_avg = 0
@@ -49,19 +51,30 @@ def test():
     for i, data in enumerate(testDataLoader):
         image = data['img']
         # print(type(image))
-        label = data['father_cls']
+        label = data['child_cls']
         # print(type(label))
         image, label = image.to(device), label.to(device)
         pred = model(image)
 
         loss = wce_loss(pred, label)
-        acc = my_acc_score(pred,label)
-        acc_avg +=acc
-        print('When Testing [%d / %d] The Loss:[%.6f] The ACC:[%.6f]' % (i,len(testDataLoader), loss.item(), acc))
-        print('The avg acc is :',acc_avg/(i+1))
-        print('The pred: ', pred)
-        print('The Gt: ', label)
+        acc = my_acc_score(pred, label)
+        f1 = my_f1_score(pred, label)
+        precision = my_precision_score(pred, label)
+        recall = my_recall_score(pred, label)
+
+        acc_avg += acc
+        f1_avg += f1
+        precision_avg += precision
+        recall_avg += recall
+        print('[%d / %d] The Loss:[%.6f], Acc:[%.6f]'
+              'F1:[%.6f] RECALL:[%.6f] PRECISION:[%.6f]' %
+              (i, len(testDataLoader), loss.item(), acc, f1, recall, precision))
+        print('The avg Acc:[%.3f]'
+              'F1:[%.3f] RECALL:[%.3f] PRECISION:[%.3f] is :'% (acc_avg/(i+1),f1_avg/(i+1),
+                                                                recall_avg/(i+1),precision_avg/(i+1)))
+        print('The pred: ', np.where((pred.detach().numpy())>0,1,0))
+        print('The Gt: ', label.detach().numpy().astype('int'))
         print('=================================\n')
 if __name__ == "__main__":
-    model_name = './save_cls_model/!0217model_epoch_50_0.036266.pt'
+    model_name = './save_cls_model/!0218model_epoch_99_0.244445.pt'
     test()

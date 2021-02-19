@@ -63,20 +63,20 @@ class PalmData(Dataset):
         self.data_list = check_list
         self.transform_enhancement = torchvision.transforms.Compose([
             torchvision.transforms.ToTensor(),
-            torchvision.transforms.Normalize((0.57,0.57,0.57), (0.18,0.18,0.18)),
+            # torchvision.transforms.Normalize((0.57,0.57,0.57), (0.18,0.18,0.18)),
 
         ])
 
         self.transform_rgb = torchvision.transforms.Compose([
             torchvision.transforms.ToTensor(),
 
-            torchvision.transforms.Normalize((0.57, 0.57, 0.57), (0.18, 0.18, 0.18)),
+            # torchvision.transforms.Normalize((0.57, 0.57, 0.57), (0.18, 0.18, 0.18)),
 
         ])
         self.transform_prewitt = torchvision.transforms.Compose([
             torchvision.transforms.ToTensor(),
 
-            torchvision.transforms.Normalize((0.57, 0.57, 0.57), (0.18, 0.18, 0.18)),
+            # torchvision.transforms.Normalize((0.57, 0.57, 0.57), (0.18, 0.18, 0.18)),
 
         ])
 
