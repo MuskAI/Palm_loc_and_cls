@@ -13,7 +13,7 @@ from palm_dataloader_child import PalmData
 import os
 from tqdm import tqdm
 from torchvision import transforms
-from model_child_cls import PalmNet
+from model_child_cls_plus import PalmNet
 import traceback
 from tensorboardX import SummaryWriter
 from function import my_acc_score,my_f1_score,my_recall_score,my_precision_score
@@ -40,7 +40,7 @@ def test():
         model.load_state_dict(checkpoint['state_dict'])
         print('==>loaded model:',model_name)
 
-    palm_data_test = PalmData(train_mode='test')
+    palm_data_test = PalmData(train_mode='te st')
     testDataLoader = torch.utils.data.DataLoader(palm_data_test, batch_size=1, num_workers=1)
 
     acc_avg = 0
@@ -76,5 +76,5 @@ def test():
         print('The Gt: ', label.detach().numpy().astype('int'))
         print('=================================\n')
 if __name__ == "__main__":
-    model_name = './save_cls_model/!0218model_epoch_99_0.244445.pt'
+    model_name = './save_cls_model/0220model_epoch_93_0.148907.pt'
     test()

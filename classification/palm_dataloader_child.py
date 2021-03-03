@@ -25,7 +25,7 @@ from tensorboardX import writer
 class PalmData(Dataset):
     def __init__(self, data_dir=None, train_val_percent=0.2,train_mode='train'):
         self.dont_need_father_cls = [2,6,9]
-        self.dont_need_child_cls = [2,6,9,81,85,34]
+        self.dont_need_child_cls = [2,6,9,81,85,34,12]
         self.father_cls_dict = father_cls_dict(self.dont_need_father_cls)
         self.child_cls_dict = child_cls_dict(self.dont_need_child_cls)
         if data_dir != None:
@@ -82,9 +82,9 @@ class PalmData(Dataset):
 
     def __getitem__(self, idx):
         rgb = Image.open(os.path.join(self.data_dir, self.data_list[idx]))
-        if rgb.size != (512,512):
+        if rgb.size != (512, 512):
             print(self.data_list[idx])
-        rgb = rgb.resize((512,512))
+        rgb = rgb.resize((512, 512))
         # TODO 转化成3通道
         if len(rgb.split()) !=3:
             if len(rgb.split()) ==4:
@@ -189,9 +189,6 @@ class PalmData(Dataset):
 if __name__ == '__main__':
     train_dataset = PalmData(data_dir='../../after_correction_rename')
     trainDataLoader = torch.utils.data.DataLoader(train_dataset, batch_size=1, num_workers=1)
-    for idx,item in enumerate(trainDataLoader):
-        print(item['img'].shape)
-        print(item['father_cls'].shape)
-        print(item['child_cls'].shape)
-
-        break
+    for idx, item in enumerate(trainDataLoader):
+        # print(item['img'].shape)
+        print(item['child_cls'])

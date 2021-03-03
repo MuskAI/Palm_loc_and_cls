@@ -19,7 +19,7 @@ from palm_dataloader_child import PalmData
 import os
 from tqdm import tqdm
 from torchvision import transforms
-from model_child_cls_plus import PalmNet
+from model_child_cls_plus2 import PalmNet
 from tensorboardX import SummaryWriter
 from function import my_acc_score, my_f1_score, my_precision_score, my_recall_score
 import traceback
@@ -29,14 +29,14 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 device_ids = [0, 1]
-writer = SummaryWriter('./runs/' + '0220palm_cls_loss_record20个小类plus')
+writer = SummaryWriter('./runs/' + '0219palm_cls_loss_record20个小类plus')
 
 sys.path.append('./')
 
 
 def train():
     # TODO 0 超参数区域
-    batch_size = 7
+    batch_size = 6
     lr = 1e-2
 
     # ###############################
@@ -46,16 +46,13 @@ def train():
 
     # writer.add_graph(model, (torch.ones(1,3,512,512).cuda()))
     palm_data_train = PalmData()
-    palm_data_test = PalmData(train_mode='test')
     trainDataLoader = torch.utils.data.DataLoader(palm_data_train, batch_size=batch_size, num_workers=3)
-
-    testDataLoader = torch.utils.data.DataLoader(palm_data_test, batch_size=batch_size, num_workers=3)
 
     # optimizer = optim.Adam(params=model.parameters(),lr=lr)
 
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
-    # optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-    scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[10,40,60,80,100], gamma=0.1)
+    # optimizer = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+    scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[10,20,40,60,80], gamma=0.1)
     # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
     # TODO 1 构建模型 数据加载 损失函数
     # if not os.path.exists(model_name):
@@ -67,8 +64,8 @@ def train():
     #     optimizer.load_state_dict(checkpoint['opt_state_dict'])
     #     print('==>loaded model:', model_name)
 
-    num_epochs = 150
-
+    num_epochs = 200
+    min_loss = 99999
     for epoch in range(0, num_epochs):
         scheduler.step(epoch)
         loss_avg = 0
@@ -130,8 +127,14 @@ def train():
             'opt_state_dict': optimizer.state_dict(),
             'epoch': epoch
         }
-        torch.save(checkpoint,
-                   './save_cls_model/0220model_epoch_%d_%.6f.pt' % (epoch, loss_avg / len(trainDataLoader)))
+        if loss_avg/len(trainDataLoader) < min_loss:
+            min_loss = loss_avg/len(trainDataLoader)
+            torch.save(checkpoint,
+                       './save_cls_model/min_0219_model_epoch_%d_%.6f.pt' % (epoch, loss_avg / len(trainDataLoader)))
+
+        if epoch%10==0:
+            torch.save(checkpoint,
+                       './save_cls_model/0219model_epoch_%d_%.6f.pt' % (epoch, loss_avg / len(trainDataLoader)))
 
 
 if __name__ == "__main__":
